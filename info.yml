@@ -68,14 +68,15 @@ configuration:
         default_value: shotgun_launch_publish
         parameters: [path, context, associated_entity]
 
-    hook_multiple_publishes:
+    hook_get_published_file:
         type: hook
-        description: When the Version has multiple published files, select one of them.
-                     Typically, this hook would look at the published files, and
-                     based on some criteria, decide which published file to pick.
-                     The default implementation will return the first published file
-                     found respecting the viewer_extensions order.
-        default_value: shotgun_multiple_publishes
+        description: Given a Version or a PublishedFile (legacy TankPublishedFile
+                      supported), return its linked PublishedFile. Path, task and
+                      entity fields must be returned.
+                     This hook allows to deal with the case of a Version with
+                     multiple PublishedFiles linked to it. The default implementation
+                     will select a PublishedFile based on the viewer_extensions order.
+        default_value: shotgun_get_published_file
 
 
 # the Shotgun fields that this app needs in order to operate correctly
