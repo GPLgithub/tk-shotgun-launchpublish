@@ -71,7 +71,7 @@ class GetPublishedFile(HookBaseClass):
                         "Sorry, viewer extensions must be provided when a Version has multiple PublishedFiles"
                     )
                 published_file_ids = [pf["id"] for pf in v[published_files_field]]
-                published_files = self.sgtk.shotgun.find(
+                published_files = self.parent.shotgun.find(
                     published_file_entity_type,
                     [["id", "in", published_file_ids]],
                     ["path", "task", "entity"]
