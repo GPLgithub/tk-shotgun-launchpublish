@@ -53,37 +53,35 @@ class GetPublishedFile(HookBaseClass):
             # entity is a Version so try to get the id
             # of the published file it is linked to
             if published_file_entity_type == "PublishedFile":
-                v = self.shotgun.find_one("Version", [["id", "is", entity_id]], ["published_files"])
-                if not v.get("published_files"):
-                    raise TankError("Sorry, this can only be used on Versions with an associated PublishedFile.")
-                if len(v["published_files"]) == 1:
-                    publish_id = v["published_files"][0]["id"]
-                    return self.published_file(published_file_entity_type, publish_id)
-                else:  # if there are multiple published files, pick one.
-                    viewer_extensions = self.parent.get_setting("viewer_extensions")
-                    if not viewer_extensions:
-                        raise TankError(
-                            "Sorry, viewer extensions must be provided when a Version has multiple PublishedFiles"
-                        )
-                    published_file_ids = [pf["id"] for pf in v["published_files"]]
-                    published_files = self.sgtk.shotgun.find(
-                        published_file_entity_type,
-                        [["id", "in", published_file_ids]],
-                        ["path", "task", "entity"]
-                    )
-                    for viewer_extension in viewer_extensions:
-                        for published_file in published_files:
-                            path_on_disk = self.parent.get_path_on_disk(published_file)
-                            if path_on_disk and path_on_disk.endswith(".%s" % viewer_extension):
-                                return published_file
-                    return published_files[0]
+                published_files_field = "published_files"
+            else:
+                published_files_field = "tank_published_file"
 
-            else:  # == "TankPublishedFile":
-                v = self.shotgun.find_one("Version", [["id", "is", entity_id]], ["tank_published_file"])
-                if not v.get("tank_published_file"):
-                    raise TankError("Sorry, this can only be used on Versions with an associated Published File.")
-                publish_id = v["tank_published_file"]["id"]
+            v = self.shotgun.find_one("Version", [["id", "is", entity_id]], [published_files_field])
+            if not v.get(published_files_field):
+                raise TankError("Sorry, this can only be used on Versions with an associated published file.")
+            if len(v[published_files_field]) == 1:
+                publish_id = v[published_files_field][0]["id"]
                 return self.published_file(published_file_entity_type, publish_id)
+            else:
+                # if there are multiple published files, pick one.
+                viewer_extensions = self.parent.get_setting("viewer_extensions")
+                if not viewer_extensions:
+                    raise TankError(
+                        "Sorry, viewer extensions must be provided when a Version has multiple PublishedFiles"
+                    )
+                published_file_ids = [pf["id"] for pf in v[published_files_field]]
+                published_files = self.sgtk.shotgun.find(
+                    published_file_entity_type,
+                    [["id", "in", published_file_ids]],
+                    ["path", "task", "entity"]
+                )
+                for viewer_extension in viewer_extensions:
+                    for published_file in published_files:
+                        path_on_disk = self.parent.get_path_on_disk(published_file)
+                        if path_on_disk and path_on_disk.endswith(".%s" % viewer_extension):
+                            return published_file
+                return published_files[0]
         else:
             # entity is PublishedFile or TankPublishedFile. Return it
             return self.published_file(entity_type, entity_id)
