@@ -35,7 +35,7 @@ class LaunchPublish(Application):
     def init_app(self):
         deny_permissions = self.get_setting("deny_permissions")
         deny_platforms = self.get_setting("deny_platforms")
-        title = self.get_setting("display_name")
+        title = self.get_setting("display_name", "Open in Associated Application")
         
         p = {
             "title": title,
