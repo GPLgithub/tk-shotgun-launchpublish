@@ -90,7 +90,7 @@ class LaunchPublish(Application):
         if system.startswith("linux"):
             cmd = '%s "%s" &' % (app_path, path)
         elif system == "darwin":
-            cmd = 'open -a "%s" "%s"' % (app_path, path)
+            cmd = 'open -n -a "%s" "%s"' % (app_path, path)
         elif system == "win32":
             cmd = 'start /B "Maya" "%s" "%s"' % (app_path, path)
         else:
