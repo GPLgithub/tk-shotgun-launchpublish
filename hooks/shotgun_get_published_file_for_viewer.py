@@ -44,13 +44,13 @@ class GetPublishedFileForViewer(HookBaseClass):
             raise TankError(
                 "Sorry, viewer extensions must be provided."
             )
-        path_on_disk = self.parent.get_path_on_disk(published_file)
+        path_on_disk = self.parent.get_path_on_disk(self.published_file(entity_type, published_file["id"]))
         if path_on_disk:
             for viewer_extension in viewer_extensions:
                 if path_on_disk.endswith(".%s" % viewer_extension):
                     return self.published_file(entity_type, published_file["id"])
-        raise TankError("Published File %s does not match viewer extensions %s" % (
-            published_file,
+        raise TankError("Path %s does not match viewer extensions %s" % (
+            path_on_disk,
             viewer_extensions
         ))
 
