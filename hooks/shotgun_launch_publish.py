@@ -27,10 +27,10 @@ from sgtk import TankError
 HookBaseClass = sgtk.get_hook_baseclass()
 
 class LaunchAssociatedApp(HookBaseClass):
-    def execute(self, path, context, associated_entity, **kwargs):
+    def execute(self, path, context, associated_entity, launch_command=None, launch_engine=None, **kwargs):
         """
         Launches the associated app and starts tank.
-        
+
         :param path: full path to the published file
         :param context: context object representing the publish
         :param associated_entity: same as context.entity
@@ -42,6 +42,12 @@ class LaunchAssociatedApp(HookBaseClass):
 
         ########################################################################
         # Example implementation below:
+        if launch_command:
+            try:
+                self._do_launch(launch_command, launch_engine, path, context)
+                status = True
+            except RuntimeError:
+                status = False
 
         if path.endswith(".nk"):
             # nuke
@@ -56,23 +62,23 @@ class LaunchAssociatedApp(HookBaseClass):
         elif path.endswith(".fbx"):
             # Motionbuilder
             status = True
-            self._do_launch("launchmotionbuilder", "tk-motionbuilder", path, context)            
-            
+            self._do_launch("launchmotionbuilder", "tk-motionbuilder", path, context)
+
         elif path.endswith(".hrox"):
             # Hiero
             status = True
-            self._do_launch("launchhiero", "tk-hiero", path, context)            
-            
+            self._do_launch("launchhiero", "tk-hiero", path, context)
+
         elif path.endswith(".max"):
             # 3ds Max
             status = True
             self._do_launch("launch3dsmax", "tk-3dsmaxplus", path, context)
-            
+
         elif path.endswith(".psd"):
             # Photoshop
             status = True
             self._do_launch("launchphotoshop", "tk-photoshop", path, context)
-            
+
         # return an indication to the app whether we launched or not
         # if we return True here, the app will just exit
         # if we return False, the app may try other ways to launch the file.

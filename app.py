@@ -106,9 +106,42 @@ class LaunchPublish(Application):
                           "If you have any questions, don't hesitate to contact support "
                           "on support@shotgunsoftware.com." % app_path )
 
+    def _execute_launch_publish_hook(self, entity, path, launch_command=None, launch_engine=None):
+        """
+        Launches an application using the launch_publish_hook defined
+        in the configuration.
+        :param entity: a Shotgun published file.
+        :param str path: The file to be launched.
+        :param str launch_command: If provided, the launch command that will
+               be executed. If not, the hook will guess based on the extension
+               of the path.
+        :param str launch_engine: Used in conjunction with launch_command.
+        :raises: TankError if it could not launch.
+        :returns: the result of the hook execution, `False` if nothing
+                  was launched.
+        """
+        # get the context - try to be as inclusive as possible here:
+        # start with the task, if that doesn't work, fall back onto the path
+        # this is because some paths don't include all the metadata that
+        # is contained inside the publish record (e.g typically not the task)
+        self.log_error("LAUNCH ENGINE %s" % launch_engine)
+        if entity.get("task"):
+            ctx = self.tank.context_from_entity("Task", entity.get("task").get("id"))
+        else:
+            ctx = self.tank.context_from_path(path)
+        # call out to the hook
+        return self.execute_hook(
+            "hook_launch_publish",
+            path=path,
+            context=ctx,
+            associated_entity=entity.get("entity"),
+            launch_command=launch_command,
+            launch_engine=launch_engine
+        )
+
     def launch_publish(self, entity_type, entity_ids):
         published_file_entity_type = tank.util.get_published_file_entity_type(self.tank)
-        
+
         if entity_type not in [published_file_entity_type, "Version"]:
             raise Exception("Sorry, this app only works with entities of type %s or Version." % published_file_entity_type)
 
@@ -127,7 +160,31 @@ class LaunchPublish(Application):
 
         path_on_disk = self.get_path_on_disk(d)
 
-        # first check if we should pass this to the viewer
+        # check that it exists
+        if not os.path.exists(path_on_disk):
+            self.log_error("The file associated with this publish, "
+                           "%s, cannot be found on disk!" % path_on_disk)
+            return
+
+        # check if we have a launch command provided
+        launch_command = self.get_setting("launch_command")
+        if launch_command:
+            try:
+                launched = self._execute_launch_publish_hook(
+                    entity=d,
+                    path=path_on_disk,
+                    launch_command=launch_command,
+                    launch_engine=self.get_setting("launch_engine")
+                )
+                # If the application was launched successfully, return.
+                # If not, continue.
+                if launched:
+                    return
+            except TankError, e:
+                # Log the error and keep trying
+                self.log_error("Failed to launch an application for this published file: %s" % e)
+
+        # check if we should pass this to the viewer
         # hopefully this will cover most image sequence types
         # any image sequence types not passed to the viewer
         # will fail later when we check if the file exists on disk
@@ -136,27 +193,13 @@ class LaunchPublish(Application):
                 self._launch_viewer(path_on_disk)
                 return
 
-        # check that it exists        
-        if not os.path.exists(path_on_disk):            
-            self.log_error("The file associated with this publish, "
-                            "%s, cannot be found on disk!" % path_on_disk)
-            return
-    
-        # now get the context - try to be as inclusive as possible here:
-        # start with the task, if that doesn't work, fall back onto the path
-        # this is because some paths don't include all the metadata that
-        # is contained inside the publish record (e.g typically not the task)
-        if d.get("task"):
-            ctx = self.tank.context_from_entity("Task", d.get("task").get("id"))
-        else:
-            ctx = self.tank.context_from_path(path_on_disk)
-        
-        # call out to the hook
+        # no launch command, no viewer. Try to launch with the hook again,
+        # this time with no command.
         try:
-            launched = self.execute_hook("hook_launch_publish", 
-                                         path=path_on_disk, 
-                                         context=ctx, 
-                                         associated_entity=d.get("entity"))
+            launched = self._execute_launch_publish_hook(
+                entity=d,
+                path=path_on_disk
+            )
         except TankError, e:
             self.log_error("Failed to launch an application for this published file: %s" % e)
             return

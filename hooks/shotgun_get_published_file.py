@@ -24,7 +24,7 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 
 class GetPublishedFile(HookBaseClass):
-    _PUBLISHED_FILE_FIELDS = ["path", "task", "entity"]
+    _PUBLISHED_FILE_FIELDS = ["project", "path", "task", "entity"]
 
     def execute(self, entity_type, entity_id, published_file_entity_type, **kwargs):
         """
