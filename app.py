@@ -166,30 +166,31 @@ class LaunchPublish(Application):
                            "%s, cannot be found on disk!" % path_on_disk)
             return
 
-        # check if we have a launch command provided
-        launch_command = self.get_setting("launch_command")
-        if launch_command:
-            try:
-                launched = self._execute_launch_publish_hook(
-                    entity=d,
-                    path=path_on_disk,
-                    launch_command=launch_command,
-                    launch_engine=self.get_setting("launch_engine")
-                )
-                # If the application was launched successfully, return.
-                # If not, continue.
-                if launched:
-                    return
-            except TankError, e:
-                # Log the error and keep trying
-                self.log_error("Failed to launch an application for this published file: %s" % e)
-
         # check if we should pass this to the viewer
         # hopefully this will cover most image sequence types
         # any image sequence types not passed to the viewer
         # will fail later when we check if the file exists on disk
         for x in self.get_setting("viewer_extensions", {}):
             if path_on_disk.endswith(".%s" % x):
+                # check if we have a launch command provided
+                launch_command = self.get_setting("launch_command")
+                if launch_command:
+                    try:
+                        launched = self._execute_launch_publish_hook(
+                            entity=d,
+                            path=path_on_disk,
+                            launch_command=launch_command,
+                            launch_engine=self.get_setting("launch_engine")
+                        )
+                        # If the application was launched successfully, return.
+                        # If not, continue.
+                        if launched:
+                            return
+                    except TankError, e:
+                        # Log the error and keep trying
+                        self.log_error("Failed to launch an application for this published file: %s" % e)
+
+                # Launch command did not work, try to launch the viewer.
                 self._launch_viewer(path_on_disk)
                 return
 
