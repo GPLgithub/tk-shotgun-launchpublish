@@ -15,11 +15,11 @@ App that launches a Publish from inside of Shotgun.
 from sgtk.util import PublishPathNotDefinedError, PublishPathNotSupported
 from tank.platform import Application
 from tank import TankError
+from tank import Hook
 import tank
 
 
 class LaunchPublish(Application):
-    PUBLISHED_FILE_FIELDS = ["project", "path", "task", "entity"]
 
     @property
     def context_change_allowed(self):
@@ -63,33 +63,32 @@ class LaunchPublish(Application):
             else:
                 published_files_field = "tank_published_file"
 
-            v = self.shotgun.find_one("Version", [["id", "is", entity_ids[0]]], [published_files_field])
+            v = self.shotgun.find_one(entity_type, [["id", "is", entity_ids[0]]], [published_files_field])
             if not v.get(published_files_field):
-                raise TankError("Sorry, this can only be used on Versions with an associated published file.")
+                raise TankError("Sorry, this can only be used on %ss with an associated published file." % entity_type)
             published_files = v[published_files_field]
 
         # Then, resolve a valid published file.
         try:
             if len(published_files) == 1:
-                published_file = self.execute_hook_method(
-                    "hook_get_published_file",
-                    "resolve_single_file",
-                    published_file_type=published_file_entity_type,
-                    published_file=published_files[0],
-                )
+                hook_method = "resolve_single_file"
             else:
-                published_file = self.execute_hook_method(
-                    "hook_get_published_file",
-                    "resolve_multiple_files",
-                    published_file_type=published_file_entity_type,
-                    published_files=published_files,
-                )
+                hook_method = "resolve_multiple_files"
+            published_file = self.execute_hook_method(
+                "hook_get_published_file",
+                hook_method,
+                published_file_type=published_file_entity_type,
+                published_files=published_files,
+                base_class=BaseHook
+            )
         except (TankError, PublishPathNotDefinedError, PublishPathNotSupported) as e:
             self.log_error(
                 "Failed to get a published file for %s %s: %s" % (
                     published_file_entity_type,
                     entity_ids[0],
-                    e))
+                    e
+                )
+            )
             return
 
         # Finally, try to open the published file using launch hooks.
@@ -97,8 +96,12 @@ class LaunchPublish(Application):
         errors = []
         for launch_hook_expr in launch_hooks:
             try:
-                launch_hook = self.create_hook_instance(launch_hook_expr)
-                launch_hook.execute(published_file=published_file)
+                self.execute_hook_expression(
+                    launch_hook_expr,
+                    "execute",
+                    base_class=BaseHook,
+                    published_file=published_file
+                )
                 return
             except Exception as e:
                 message = "Failed to launch publish for %s with %s: %s" % (
@@ -106,22 +109,32 @@ class LaunchPublish(Application):
                     launch_hook_expr,
                     e
                 )
-                self.log_debug(message)
-                errors.append(e)
+                self.logger.debug(message, exc_info=True)
+                errors.append(str(e))
         self.log_error(
             "Failed to Launch publish for %s: %s" % (
                 published_file, "\n".join(errors)
-            )
+            ),
         )
 
-    def published_file(self, published_file_type, published_file_id):
+
+class BaseHook(Hook):
+    """
+    A base hook used to share common functionality for all hooks.
+    """
+    PUBLISHED_FILE_FIELDS = ["project", "path", "task", "entity"]
+
+    def get_published_file(self, published_file_type, published_file_id):
         """
         Return the PublishedFile or TankPublishedFile with path, task and entity
         fields.
+
         :param str published_file_type: PublishedFile or TankPublishedFile
         :param int published_file_id: a Shotgun ID.
         :returns: the published file with the right fields.
         """
-        return self.shotgun.find_one(
+        return self.parent.shotgun.find_one(
             published_file_type,
-            [["id", "is", published_file_id]], self.PUBLISHED_FILE_FIELDS)
+            [["id", "is", published_file_id]],
+            self.PUBLISHED_FILE_FIELDS
+        )

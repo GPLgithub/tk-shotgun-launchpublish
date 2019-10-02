@@ -32,21 +32,19 @@ class LaunchShotgunApp(HookBaseClass):
         """
         Launches the associated app and starts tank.
 
-        :param path: full path to the published file
-        :param context: context object representing the publish
-        :param associated_entity: same as context.entity
+        :param published_file: The published file to launch.
+        :raises: `TankError` if no valid application was found.
         """
         ########################################################################
         # Example implementation below:
         path = self.get_publish_path(published_file)
-        valid_photoshop_extensions = [".psd", ".jpg", ".jpeg", ".png", ".tiff", ".tga"]
 
         if published_file.get("task"):
             context = self.tank.context_from_entity("Task", published_file["task"].get("id"))
         else:
             context = self.tank.context_from_path(path)
         if context is None:
-            raise TankError("Context cannot be None!")
+            raise TankError("Failed to get a valid context from published file: %s" % published_file)
         if path.endswith(".nk"):
             # nuke
             self._do_launch("launchnuke", "tk-nuke", path, context)
@@ -67,13 +65,12 @@ class LaunchShotgunApp(HookBaseClass):
             # 3ds Max
             self._do_launch("launch3dsmax", "tk-3dsmaxplus", path, context)
             return
-        elif os.path.splitext(path)[1] in valid_photoshop_extensions:
+        elif os.path.splitext(path)[1] in [".psd", ".jpg", ".jpeg", ".png", ".tiff", ".tga"]:
             # Photoshop
-            self.logger.error("LAUNCHING TOSHOP!")
             self._do_launch("launchphotoshop", "tk-photoshopcc", path, context)
             return
         # The extension is not valid. Return
-        raise TankError("No valid application found for %s" % path)
+        raise TankError("No valid Shotgun application found for %s" % path)
 
     def _do_software_launcher_launch(self, path, engine_instance_name):
         """

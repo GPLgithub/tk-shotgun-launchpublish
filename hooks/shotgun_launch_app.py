@@ -27,12 +27,23 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 
 class LaunchApp(HookBaseClass):
+    """
+    A Hook to open a file in a predefined app.
+    """
 
     def execute(self, published_file, **kwargs):
+        """
+        Try to launch the defined application for the given
+        published file's path.
+
+        :param published_file: the published file.
+
+        :raises: TankError, PublishPathNotDefinedError, PublishPathNotSupported
+        """
         # Will raise an error if the path is not defined or cannot be resolved
         # The app will take care of it.
         publish_path = self.get_publish_path(published_file)
-        self.logger.error("Launching app for file %s" % publish_path)
+        self.logger.debug("Launching app for file %s" % publish_path)
         self._launch_app(publish_path)
 
     def _launch_app(self, path):

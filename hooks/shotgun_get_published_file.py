@@ -24,16 +24,17 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 class GetPublishedFile(HookBaseClass):
 
-    def resolve_single_file(self, published_file_type, published_file):
+    def resolve_single_file(self, published_file_type, published_files):
         """
         Decide wether or not to return the published file, or raise a TankError.
         This default implementation returns it.
 
         :param str published_file_type: PublishedFile or TankPublishedFile.
-        :param dict published_file: The published file.
+        :param list published_files: A list of published files, typically
+               containing only one element.
         :returns: The published file with the right fields.
         """
-        return self.parent.published_file(published_file_type, published_file["id"])
+        return self.get_published_file(published_file_type, published_files[0]["id"])
 
     def resolve_multiple_files(self, published_file_type, published_files):
         """
@@ -43,4 +44,4 @@ class GetPublishedFile(HookBaseClass):
         :param list published_files: The published files.
         :returns: The first published file with the right fields.
         """
-        return self.parent.published_file(published_file_type, published_files[0]["id"])
+        return self.get_published_file(published_file_type, published_files[0]["id"])

@@ -21,8 +21,18 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 
 class LaunchSystemApp(HookBaseClass):
+    """
+    Hook for launching the default system app for a published file's path.
+    """
 
     def execute(self, published_file, **kwargs):
+        """
+        Try to launch the default app defined by the operating
+        system.
+
+        :param published_file: A Shotgun published file.
+        :raises: `TankError` if it failed to launch an application.
+        """
         # Will raise an error if the path is not defined or cannot be resolved.
         # The app will take care of it.
         publish_path = self.get_publish_path(published_file)

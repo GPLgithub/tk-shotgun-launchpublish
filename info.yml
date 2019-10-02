@@ -79,7 +79,7 @@ configuration:
                         * shotgun_launch_app will try to launch the app defined
                         by app_path_windows, app_path_mac, app_path_linux.
                         * shotgun_launch_shotgun_app will try to match the file extension to a known
-                          engine,launch that app, start up the engine and finally load the file.
+                          engine, launch that app, start up the engine and finally load the file.
                         * shotgun_launch_system_app will launch the default application
                           for the file found by the operating system.
                       The default value will try these 3 default implementations in order.

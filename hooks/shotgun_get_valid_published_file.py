@@ -20,6 +20,7 @@ If none are found, it raises a TankError.
 
 import sgtk
 from sgtk import TankError
+from sgtk.util import PublishPathNotDefinedError, PublishPathNotSupported
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -28,23 +29,25 @@ class GetValidPublishedFile(HookBaseClass):
     """
     """
 
-    def resolve_single_file(self, entity_type, published_file):
+    def resolve_single_file(self, entity_type, published_files):
         """
         Decide wether or not to return the published file, or raise a TankError.
         Returns the published file only if its path's extension matches one of
         the valid_extensions.
 
         :param str entity_type: PublishedFile or TankPublishedFile.
-        :param dict published_file: The published file.
+        :param list published_files: A list of published files, typically
+               containing only one element.
         :returns: The published file with the right fields.
-        :raises: TankError
+        :raises: TankError, PublishPathNotDefinedError, PublishPathNotSupported
         """
+        published_file = published_files[0]
         valid_extensions = self.parent.get_setting("valid_extensions")
         if not valid_extensions:
             raise TankError(
                 "Sorry, valid extensions must be provided."
             )
-        sg_published_file = self.parent.published_file(entity_type, published_file["id"])
+        sg_published_file = self.get_published_file(entity_type, published_file["id"])
         path_on_disk = self.get_publish_path(sg_published_file)
         if path_on_disk:
             for app_extension in valid_extensions:
@@ -76,13 +79,18 @@ class GetValidPublishedFile(HookBaseClass):
         published_files = self.parent.shotgun.find(
             published_file_type,
             [["id", "in", published_file_ids]],
-            self.parent.PUBLISHED_FILE_FIELDS
+            self.PUBLISHED_FILE_FIELDS
         )
         for app_extension in valid_extensions:
             for published_file in published_files:
-                path_on_disk = self.get_publish_path(published_file)
-                if path_on_disk and path_on_disk.endswith(".%s" % app_extension):
-                    return published_file
+                try:
+                    path_on_disk = self.get_publish_path(published_file)
+                    if path_on_disk and path_on_disk.endswith(".%s" % app_extension):
+                        return published_file
+                except (PublishPathNotDefinedError, PublishPathNotSupported):
+                    # if the path is invalid, just continue to the next
+                    # published file.
+                    pass
         raise TankError(
             "Could not find a published file matching valid extensions %s. Published files: %s" % (
                 valid_extensions,
