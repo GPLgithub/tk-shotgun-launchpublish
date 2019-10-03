@@ -32,52 +32,61 @@ configuration:
                      for a platform, just include it in the the deny_platforms list. Valid values 
                      are Windows, Mac and Linux."    
     
-    viewer_extensions: 
+    valid_extensions:
         type: list
         values: {type: str}
-        default_value: [exr, cin, dpx]
-        description: "A list of file extensions to send to the viewer application.
+        default_value: []
+        allows_empty: True
+        description: "A list of file extensions to consider as valid in hook_get_published_file.
+                     The order of the extensions can be useful to determine which published file
+                     to pick in case there are more than one.
+                     An example default implementation is {self}/get_valid_published_file.py
                      Do not include the period character. Example: `[exr, cin, dpx]`"
-    
-    viewer_path_windows:       
+
+    app_path_windows:
         type: str
-        default_value: "C:\\Program Files\\RV\\RV64.exe"
-        description: A path to an image sequence viewer for windows. Any path with 
-                     an extension defined in the viewer_extensions list will be 
-                     dispatched here.
-    viewer_path_linux:       
+        default_value: ""
+        description: "A path to an app for Windows. It needs to
+                      be defined to use the hook open_with_configured_app."
+    app_path_linux:
         type: str
-        default_value: "rv"
-        description: A path to an image sequence viewer for linux. Any path with 
-                     an extension defined in the viewer_extensions list will be 
-                     dispatched here.
-    viewer_path_mac:       
+        default_value: ""
+        description: "A path to an app for Linux. It needs to
+                      be defined to use the hook open_with_configured_app."
+    app_path_mac:
         type: str
-        default_value: "/Applications/RV64.app"
-        description: A path to an image sequence viewer for mac. Any path with 
-                     an extension defined in the viewer_extensions list will be 
-                     dispatched here.
-    
-    hook_launch_publish:
-        type: hook
-        description: Launch an application and tell it to load a file.
-                      Typically, this hook would look at the file extension,
-                      then decide on an app to launch, launch that app, start
-                      up the engine and finally load the file. Returns True if 
-                      an application was launched, False if not.
-        default_value: shotgun_launch_publish
-        parameters: [path, context, associated_entity]
+        default_value: ""
+        description: "A path to an app for Mac. It needs to
+                      be defined to use the hook open_with_configured_app."
 
     hook_get_published_file:
         type: hook
-        description: Given a Version or a PublishedFile (legacy TankPublishedFile
-                      supported), return its linked PublishedFile. Path, task and
-                      entity fields must be returned.
+        description: "Given a Version or a PublishedFile (legacy TankPublishedFile
+                     supported), return its linked PublishedFile. Path, task and
+                     entity fields must be returned.
                      This hook allows to deal with the case of a Version with
                      multiple PublishedFiles linked to it. The default implementation
-                     will select a PublishedFile based on the viewer_extensions order.
-        default_value: shotgun_get_published_file
+                     will select a PublishedFile based on the valid_extensions order."
+        default_value: get_valid_published_file
 
+    launch_publish_hooks:
+        type: list
+        values: {type: str}
+        description: "List of hooks to launch an application and tell it to load a file.
+                      It will try to execute the hooks in order, until an application is
+                      launched.
+                      A few default implementations are available.
+                        * open_with_configured_app will try to launch the app defined
+                        by app_path_windows, app_path_mac, app_path_linux.
+                        * open_with_shotgun_launchapp will try to match the file extension to a known
+                          engine, launch that app, start up the engine and finally load the file.
+                        * open_with_platrform_default_app will launch the default application
+                          for the file found by the operating system.
+                      The default value will try these 3 default implementations in order.
+                      "
+        default_value: ["{self}/open_with_configured_app.py", "{self}/open_with_shotgun_launchapp.py",
+                        "{self}/open_with_platform_default_app.py"]
+        parameters: [path, context, associated_entity]
 
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:

@@ -9,14 +9,14 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
-Hook for launching the app for a publish.
+Hook for launching the Shotgun app with its engine for a published file.
 
-This hook typically looks at the extension of the input file
+This hook typically looks at the extension of the published file's path
 and based on this determine which launcher app to dispatch
 the request to.
 
-If no suitable launcher is found, return False, and the app
-will launch the file in default viewer.
+If no suitable launcher is found, raise an error, and the app
+will try other launch hooks, if provided.
 """
 
 import os
@@ -26,57 +26,51 @@ from sgtk import TankError
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
-class LaunchAssociatedApp(HookBaseClass):
-    def execute(self, path, context, associated_entity, **kwargs):
+
+class LaunchShotgunApp(HookBaseClass):
+    def execute(self, published_file, **kwargs):
         """
         Launches the associated app and starts tank.
-        
-        :param path: full path to the published file
-        :param context: context object representing the publish
-        :param associated_entity: same as context.entity
+
+        :param dict published_file: The published file entity to launch.
+        :raises: `TankError` if no valid application was found.
         """
-        status = False
-
-        if context is None:
-            raise TankError("Context cannot be None!")
-
         ########################################################################
         # Example implementation below:
+        path = self.get_publish_path(published_file)
 
+        if published_file.get("task"):
+            context = self.tank.context_from_entity("Task", published_file["task"].get("id"))
+        else:
+            context = self.tank.context_from_path(path)
+        if context is None:
+            raise TankError("Failed to get a valid context from published file: %s" % published_file)
         if path.endswith(".nk"):
             # nuke
-            status = True
             self._do_launch("launchnuke", "tk-nuke", path, context)
-
+            return
         elif path.endswith(".ma") or path.endswith(".mb"):
             # maya
-            status = True
             self._do_launch("launchmaya", "tk-maya", path, context)
-
+            return
         elif path.endswith(".fbx"):
             # Motionbuilder
-            status = True
-            self._do_launch("launchmotionbuilder", "tk-motionbuilder", path, context)            
-            
+            self._do_launch("launchmotionbuilder", "tk-motionbuilder", path, context)
+            return
         elif path.endswith(".hrox"):
             # Hiero
-            status = True
-            self._do_launch("launchhiero", "tk-hiero", path, context)            
-            
+            self._do_launch("launchhiero", "tk-hiero", path, context)
+            return
         elif path.endswith(".max"):
             # 3ds Max
-            status = True
             self._do_launch("launch3dsmax", "tk-3dsmaxplus", path, context)
-            
-        elif path.endswith(".psd"):
+            return
+        elif os.path.splitext(path)[1] in [".psd", ".jpg", ".jpeg", ".png", ".tiff", ".tga"]:
             # Photoshop
-            status = True
-            self._do_launch("launchphotoshop", "tk-photoshop", path, context)
-            
-        # return an indication to the app whether we launched or not
-        # if we return True here, the app will just exit
-        # if we return False, the app may try other ways to launch the file.
-        return status
+            self._do_launch("launchphotoshop", "tk-photoshopcc", path, context)
+            return
+        # The extension is not valid. Return
+        raise TankError("No valid Shotgun Launcher found for %s" % path)
 
     def _do_software_launcher_launch(self, path, engine_instance_name):
         """
