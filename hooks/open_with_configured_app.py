@@ -11,8 +11,12 @@
 """
 Hook for launching the published file in an app. The path to the app
 in different platforms is defined in the configuration.
+This allows to define in the configuration a path to a single app, maybe
+not supported by Shotgun, or if it needs to be opened in a vanilla state.
 
-This hook can be used in conjunction with the `shotgun_get_valid_published_file`
+Typically, a use case would be to define a viewer application, like RV.
+
+This hook can be used in conjunction with the `get_valid_published_file`
 hook in order to be sure a proper published file with a valid extension is provided
 to the app.
 
@@ -36,12 +40,13 @@ class LaunchApp(HookBaseClass):
         Try to launch the defined application for the given
         published file's path.
 
-        :param published_file: the published file.
+        :param dict published_file: the published file entity to launch.
 
         :raises: TankError, PublishPathNotDefinedError, PublishPathNotSupported
         """
         # Will raise an error if the path is not defined or cannot be resolved
         # The app will take care of it.
+        # Calling the default Hook implementation method.
         publish_path = self.get_publish_path(published_file)
         self.logger.debug("Launching app for file %s" % publish_path)
         self._launch_app(publish_path)
@@ -51,17 +56,19 @@ class LaunchApp(HookBaseClass):
         Launches an app based on config settings.
         We assume that the path to the file is just passed as a param to the app.
         This seems to be standard for most apps.
+
+        :param path: a path to a file.
+        :raises: `TankError` if the configuration setting for the current
+                 platform is not set or if the app failed to launch.
         """
         # get the setting
         system = sys.platform
-        try:
-            app_setting = {"linux2": "app_path_linux",
-                           "darwin": "app_path_mac",
-                           "win32": "app_path_windows"}[system]
-            app_path = self.parent.get_setting(app_setting)
-            if not app_path:
-                raise KeyError()
-        except KeyError:
+
+        app_setting = {"linux2": "app_path_linux",
+                       "darwin": "app_path_mac",
+                       "win32": "app_path_windows"}.get(system)
+        app_path = self.parent.get_setting(app_setting) if app_setting else None
+        if not app_path:
             raise TankError("Cannot find app path for platform '%s'." % system)
 
         # run the app

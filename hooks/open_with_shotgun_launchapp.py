@@ -32,7 +32,7 @@ class LaunchShotgunApp(HookBaseClass):
         """
         Launches the associated app and starts tank.
 
-        :param published_file: The published file to launch.
+        :param dict published_file: The published file entity to launch.
         :raises: `TankError` if no valid application was found.
         """
         ########################################################################
@@ -70,7 +70,7 @@ class LaunchShotgunApp(HookBaseClass):
             self._do_launch("launchphotoshop", "tk-photoshopcc", path, context)
             return
         # The extension is not valid. Return
-        raise TankError("No valid Shotgun application found for %s" % path)
+        raise TankError("No valid Shotgun Launcher found for %s" % path)
 
     def _do_software_launcher_launch(self, path, engine_instance_name):
         """

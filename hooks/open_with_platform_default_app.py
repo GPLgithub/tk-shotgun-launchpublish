@@ -30,7 +30,7 @@ class LaunchSystemApp(HookBaseClass):
         Try to launch the default app defined by the operating
         system.
 
-        :param published_file: A Shotgun published file.
+        :param dict published_file: The Shotgun published file entity to launch.
         :raises: `TankError` if it failed to launch an application.
         """
         # Will raise an error if the path is not defined or cannot be resolved.

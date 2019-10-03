@@ -36,18 +36,19 @@ class GetValidPublishedFile(HookBaseClass):
         the valid_extensions.
 
         :param str entity_type: PublishedFile or TankPublishedFile.
-        :param list published_files: A list of published files, typically
+        :param list published_files: A list of published file entity dicts, typically
                containing only one element.
-        :returns: The published file with the right fields.
+        :returns: The published file entity dict with the required fields.
         :raises: TankError, PublishPathNotDefinedError, PublishPathNotSupported
         """
         published_file = published_files[0]
         valid_extensions = self.parent.get_setting("valid_extensions")
         if not valid_extensions:
             raise TankError(
-                "Sorry, valid extensions must be provided."
+                "Missing required value for setting 'valid_extensions'."
             )
         sg_published_file = self.get_published_file(entity_type, published_file["id"])
+        # call base Hook implementation method.
         path_on_disk = self.get_publish_path(sg_published_file)
         if path_on_disk:
             for app_extension in valid_extensions:
@@ -66,14 +67,14 @@ class GetValidPublishedFile(HookBaseClass):
 
         :param str published_file_type: PublishedFile or TankPublishedFile.
         :param list published_files: The published files.
-        :returns: The first published file with the right fields.
+        :returns: The first valid published file entity dict with the required fields.
         :raises: TankError
         """
 
         valid_extensions = self.parent.get_setting("valid_extensions")
         if not valid_extensions:
             raise TankError(
-                "Sorry, valid extensions must be provided."
+                "Missing required value for setting 'valid_extensions'."
             )
         published_file_ids = [pf["id"] for pf in published_files]
         published_files = self.parent.shotgun.find(
@@ -84,6 +85,7 @@ class GetValidPublishedFile(HookBaseClass):
         for app_extension in valid_extensions:
             for published_file in published_files:
                 try:
+                    # call base Hook implementation method.
                     path_on_disk = self.get_publish_path(published_file)
                     if path_on_disk and path_on_disk.endswith(".%s" % app_extension):
                         return published_file

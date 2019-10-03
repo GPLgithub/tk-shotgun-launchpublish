@@ -30,9 +30,9 @@ class GetPublishedFile(HookBaseClass):
         This default implementation returns it.
 
         :param str published_file_type: PublishedFile or TankPublishedFile.
-        :param list published_files: A list of published files, typically
+        :param list published_files: A list of published file entity dicts, typically
                containing only one element.
-        :returns: The published file with the right fields.
+        :returns: The published file entity dict with the required fields.
         """
         return self.get_published_file(published_file_type, published_files[0]["id"])
 
@@ -40,8 +40,9 @@ class GetPublishedFile(HookBaseClass):
         """
         Decide which published file to return, or raise a TankError.
         This default implementation returns the first one.
+
         :param str published_file_type: PublishedFile or TankPublishedFile.
         :param list published_files: The published files.
-        :returns: The first published file with the right fields.
+        :returns: The first published file entity dict with the required fields.
         """
         return self.get_published_file(published_file_type, published_files[0]["id"])
