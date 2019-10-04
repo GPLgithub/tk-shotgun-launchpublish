@@ -29,13 +29,13 @@ class GetValidPublishedFile(HookBaseClass):
     """
     """
 
-    def resolve_single_file(self, entity_type, published_files):
+    def resolve_single_file(self, published_file_type, published_files):
         """
         Decide wether or not to return the published file, or raise a TankError.
         Returns the published file only if its path's extension matches one of
         the valid_extensions.
 
-        :param str entity_type: PublishedFile or TankPublishedFile.
+        :param str published_file_type: PublishedFile or TankPublishedFile.
         :param list published_files: A list of published file entity dicts, typically
                containing only one element.
         :returns: The published file entity dict with the required fields.
@@ -47,7 +47,7 @@ class GetValidPublishedFile(HookBaseClass):
             raise TankError(
                 "Missing required value for setting 'valid_extensions'."
             )
-        sg_published_file = self.get_published_file(entity_type, published_file["id"])
+        sg_published_file = self.get_published_file(published_file_type, published_file["id"])
         # call base Hook implementation method.
         path_on_disk = self.get_publish_path(sg_published_file)
         if path_on_disk:
