@@ -43,6 +43,16 @@ class LaunchShotgunApp(HookBaseClass):
             context = self.tank.context_from_entity("Task", published_file["task"].get("id"))
         else:
             context = self.tank.context_from_path(path)
+            # In case the path is not relative to the project, or the project has no schema,
+            # try to still get a relevant context from the entity or the project.
+            # context_from_path calls tank.context.from_path which always returns a context, which at least contains the
+            # url. That's why context.project needs to be checked.
+            # https://github.com/shotgunsoftware/tk-core/blob/a98bbec19446244f4cfed8895aa926e0a34668d4/python/tank/context.py#L1434
+            if not context or not context.project:
+                if published_file.get("entity"):
+                    context = self.tank.context_from_entity_dictionary(published_file["entity"])
+                elif published_file.get("project"):
+                    context = self.tank.context_from_entity_dictionary(published_file["project"])
         if context is None:
             raise TankError("Failed to get a valid context from published file: %s" % published_file)
         if path.endswith(".nk"):
@@ -146,10 +156,18 @@ class LaunchShotgunApp(HookBaseClass):
         # first create folders based on the context - this is important because we 
         # are creating them in deferred mode, meaning that in some cases, new user sandboxes
         # maybe created at this point.
-        if context.task:
-            self.parent.tank.create_filesystem_structure("Task", context.task["id"], engine_name)
-        elif context.entity:
-            self.parent.tank.create_filesystem_structure(context.entity["type"], context.entity["id"], engine_name)
+        # This can fail with different kinds of exceptions if the filesystem schema is not configured
+        # correctly on the current projet. In this case, just continue.
+        try:
+            if context.task:
+                self.parent.tank.create_filesystem_structure("Task", context.task["id"], engine_name)
+            elif context.entity:
+                self.parent.tank.create_filesystem_structure(context.entity["type"], context.entity["id"], engine_name)
+            elif context.project:
+                self.parent.tank.create_filesystem_structure("Project", context.project["id"], engine_name)
+        except Exception as e:
+            self.logger.warning("Cannot create filesystem structure (skipped): %s" % e)
+            self.logger.debug("Cannot create filesystem structure: %s" % e, exc_info=True)
         
         # in ancient configs, launch instances were named tk-shotgun-launchmaya
         # in less-ancient configs, launch instances are named tk-multi-launchamaya
