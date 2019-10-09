@@ -48,7 +48,7 @@ class LaunchShotgunApp(HookBaseClass):
             if not context or not context.project:
                 if published_file.get("entity"):
                     context = self.tank.context_from_entity_dictionary(published_file["entity"])
-                if not context or not context.project:
+                elif published_file.get("project"):
                     context = self.tank.context_from_entity_dictionary(published_file["project"])
         if context is None:
             raise TankError("Failed to get a valid context from published file: %s" % published_file)
@@ -160,7 +160,10 @@ class LaunchShotgunApp(HookBaseClass):
                 self.parent.tank.create_filesystem_structure("Task", context.task["id"], engine_name)
             elif context.entity:
                 self.parent.tank.create_filesystem_structure(context.entity["type"], context.entity["id"], engine_name)
+            elif context.project:
+                self.parent.tank.create_filesystem_structure("Project", context.project["id"], engine_name)
         except Exception as e:
+            self.logger.warning("Cannot create filesystem structure (skipped): %s" % e)
             self.logger.debug("Cannot create filesystem structure (skipped): %s" % e, exc_info=True)
         
         # in ancient configs, launch instances were named tk-shotgun-launchmaya
