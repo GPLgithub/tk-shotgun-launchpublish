@@ -45,6 +45,9 @@ class LaunchShotgunApp(HookBaseClass):
             context = self.tank.context_from_path(path)
             # In case the path is not relative to the project, or the project has no schema,
             # try to still get a relevant context from the entity or the project.
+            # context_from_path calls tank.context.from_path which always returns a context, which at least contains the
+            # url. That's why context.project needs to be checked.
+            # https://github.com/shotgunsoftware/tk-core/blob/a98bbec19446244f4cfed8895aa926e0a34668d4/python/tank/context.py#L1434
             if not context or not context.project:
                 if published_file.get("entity"):
                     context = self.tank.context_from_entity_dictionary(published_file["entity"])
@@ -164,7 +167,7 @@ class LaunchShotgunApp(HookBaseClass):
                 self.parent.tank.create_filesystem_structure("Project", context.project["id"], engine_name)
         except Exception as e:
             self.logger.warning("Cannot create filesystem structure (skipped): %s" % e)
-            self.logger.debug("Cannot create filesystem structure (skipped): %s" % e, exc_info=True)
+            self.logger.debug("Cannot create filesystem structure: %s" % e, exc_info=True)
         
         # in ancient configs, launch instances were named tk-shotgun-launchmaya
         # in less-ancient configs, launch instances are named tk-multi-launchamaya
